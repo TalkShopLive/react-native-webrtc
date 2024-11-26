@@ -34,7 +34,9 @@
     "tag": "scripts/tag",
     "prepublishOnly": "npm run tag",
     "lint": "eslint --max-warnings 0 . && tsc --noEmit",
-    "format": "tools/format.sh"
+    "format": "tools/format.sh",
+    "release": "tools/release.sh",
+    "prepare": "husky install && bob build"
   },
   "bugs": {
     "url": "https://github.com/daily-co/react-native-webrtc/issues"
