@@ -19,5 +19,5 @@ Pod::Spec.new do |s|
   s.libraries           = 'c', 'sqlite3', 'stdc++'
   s.framework           = 'AudioToolbox','AVFoundation', 'CoreAudio', 'CoreGraphics', 'CoreVideo', 'GLKit', 'VideoToolbox'
   s.dependency          'React-Core'
-  s.dependency          'TalkShopLiveWebRTC', '~> 118.0.0'
+  s.dependency          'TalkShopLiveWebRTC', '~> 118.0.1'
 end
