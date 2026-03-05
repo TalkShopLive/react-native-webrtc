@@ -11,6 +11,7 @@
 static NSString * _Nonnull const WIRED_OR_EARPIECE_DEVICE_ID = @"WIRED_OR_EARPIECE";
 static NSString * _Nonnull const SPEAKERPHONE_DEVICE_ID = @"SPEAKERPHONE";
 static NSString * _Nonnull const BLUETOOTH_DEVICE_ID = @"BLUETOOTH";
+static NSString * _Nonnull const USB_DEVICE_ID = @"USB";
 
 @interface WebRTCModule (DailyDevicesManager)
 
