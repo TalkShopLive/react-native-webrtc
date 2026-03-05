@@ -30,10 +30,10 @@ RCT_EXPORT_METHOD(enumerateDevices:(RCTResponseSenderBlock)callback)
 {
     NSLog(@"[Daily] enumerateDevice from DailyDevicesManager");
     NSMutableArray *devices = [NSMutableArray array];
-    
+
     [self fillVideoInputDevices:devices];
     [self fillAudioDevices:devices];
-    
+
     callback(@[devices]);
 }
 
@@ -73,14 +73,14 @@ RCT_EXPORT_METHOD(enumerateDevices:(RCTResponseSenderBlock)callback)
                          @"label": wiredOrEarpieceLabel,
                          @"kind": DEVICE_KIND_AUDIO,
                          }];
-    
+
     [devices addObject:@{
                          @"deviceId": SPEAKERPHONE_DEVICE_ID,
                          @"groupId": @"",
                          @"label": @"Speakerphone",
                          @"kind": DEVICE_KIND_AUDIO,
                          }];
-    
+
     if(self.hasBluetoothDevice && !self.hasWiredHeadset){
         [devices addObject:@{
                          @"deviceId": BLUETOOTH_DEVICE_ID,
@@ -103,7 +103,7 @@ RCT_EXPORT_METHOD(enumerateDevices:(RCTResponseSenderBlock)callback)
     }
     return false;
 }
-    
+
 - (BOOL)hasBluetoothDevice {
     AVAudioSession *audioSession = AVAudioSession.sharedInstance;
 
@@ -172,10 +172,10 @@ RCT_EXPORT_METHOD(getAudioDevice: (RCTPromiseResolveBlock)resolve
 // https://github.com/xialin/AudioSessionManager/blob/master/AudioSessionManager.m
 RCT_EXPORT_METHOD(setAudioDevice:(NSString*)deviceId) {
     NSLog(@"[Daily] setAudioDevice: %@", deviceId);
-    
+
     [self setAudioMode: AUDIO_MODE_USER_SPECIFIED_ROUTE];
     self.userSelectedDevice = deviceId;
-    
+
     // Ducking other apps' audio implicitly enables allowing mixing audio with
     // other apps, which allows this app to stay alive in the backgrounnd during
     // a call (assuming it has the voip background mode set).
@@ -194,6 +194,9 @@ RCT_EXPORT_METHOD(setAudioDevice:(NSString*)deviceId) {
         NSLog(@"[Daily] configuring output to SPEAKER");
         categoryOptions |= AVAudioSessionCategoryOptionDefaultToSpeaker;
         mode = AVAudioSessionModeVideoChat;
+    } else if([USB_DEVICE_ID isEqualToString: deviceId]){
+        NSLog(@"[Daily] configuring output to USB");
+        mode = AVAudioSessionModeVideoRecording;
     }
 
     AVAudioSession *audioSession = AVAudioSession.sharedInstance;
@@ -212,6 +215,8 @@ RCT_EXPORT_METHOD(setAudioDevice:(NSString*)deviceId) {
                 return;
             }
         }
+    } else if ([USB_DEVICE_ID isEqualToString: deviceId]){
+        [audioSession overrideOutputAudioPort: AVAudioSessionPortUSBAudio error: nil];
     }
 }
 
@@ -222,7 +227,13 @@ RCT_EXPORT_METHOD(setAudioDevice:(NSString*)deviceId) {
     // We need to set the mode before set the category, because when setting the node It can automatically change the categories.
     // This way we can enforce the categories that we want later.
     [self audioSessionSetMode:mode toSession:audioSession];
-    [self audioSessionSetCategory:AVAudioSessionCategoryPlayAndRecord toSession:audioSession options:categoryOptions];
+
+    // if mode is AVAudioSessionModeVideoRecording then set category to AVAudioSessionCategoryRecord, otherwise set to AVAudioSessionCategoryPlayAndRecord
+    if ([mode isEqualToString:AVAudioSessionModeVideoRecording]) {
+        [self audioSessionSetCategory:AVAudioSessionCategoryRecord toSession:audioSession options:categoryOptions];
+    } else {
+        [self audioSessionSetCategory:AVAudioSessionCategoryPlayAndRecord toSession:audioSession options:categoryOptions];
+    }
 }
 
 - (void)audioSessionSetCategory:(NSString *)audioCategory
@@ -254,12 +265,12 @@ RCT_EXPORT_METHOD(setAudioDevice:(NSString*)deviceId) {
     // Possible change reasons: AVAudioSessionRouteChangeReasonOldDeviceUnavailable AVAudioSessionRouteChangeReasonNewDeviceAvailable
     NSInteger changeReason = [[notification.userInfo objectForKey:AVAudioSessionRouteChangeReasonKey] integerValue];
     NSLog(@"[Daily] devicesChanged %zd", changeReason);
-    
+
     // AVAudioSessionRouteDescription *oldRoute = [notification.userInfo objectForKey:AVAudioSessionRouteChangePreviousRouteKey];
     // NSString *oldOutput = [[oldRoute.outputs objectAtIndex:0] portType];
     // AVAudioSessionRouteDescription *newRoute = [audioSession currentRoute];
     // NSString *newOutput = [[newRoute.outputs objectAtIndex:0] portType];
-    
+
     [self sendEventWithName:kEventMediaDevicesOnDeviceChange body:@{}];
 }
 
