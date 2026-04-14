@@ -6,6 +6,7 @@ project.xcworkspace
 .DS_Store
 .idea
 android/build
+android/.gradle
 android/*.iml
 daily-co-*.tgz
 

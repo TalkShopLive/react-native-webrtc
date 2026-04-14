@@ -1,4 +1,5 @@
 #import <AVFoundation/AVFoundation.h>
+#import <MetalKit/MetalKit.h>
 #import <objc/runtime.h>
 
 #import <React/RCTLog.h>
@@ -119,6 +120,18 @@
         _objectFit = RTCVideoViewObjectFitCover;
         [self addSubview:self.videoView];
         self.videoView.delegate = self;
+
+        // Prevent the internal MTKView from auto-resizing its drawableSize on
+        // each draw cycle.  Without this, a race between setSize: (called from
+        // the video track on a worker queue -> dispatched to main) and
+        // layoutSubviews can leave drawableSize at the wrong aspect ratio,
+        // causing the video to appear stretched/squeezed on iOS.
+        @try {
+            MTKView *mtk = [_videoView valueForKey:@"metalView"];
+            if (mtk) {
+                mtk.autoResizeDrawable = NO;
+            }
+        } @catch (id e) {}
     }
 
     return self;
@@ -134,6 +147,20 @@
 
     CGRect bounds = self.bounds;
     self.videoView.frame = bounds;
+
+    // Explicitly set drawableSize to match the video frame dimensions (or
+    // the view bounds as a fallback) so that the Metal drawable always has
+    // the correct aspect ratio, regardless of the order in which
+    // layoutSubviews and setSize: are called.
+    @try {
+        MTKView *mtk = [self.videoView valueForKey:@"metalView"];
+        CGSize vfs = [[self.videoView valueForKey:@"videoFrameSize"] CGSizeValue];
+        if (mtk && !CGSizeEqualToSize(vfs, CGSizeZero)) {
+            mtk.drawableSize = vfs;
+        } else if (mtk && !CGSizeEqualToSize(bounds.size, CGSizeZero)) {
+            mtk.drawableSize = bounds.size;
+        }
+    } @catch (id e) {}
 }
 
 /**

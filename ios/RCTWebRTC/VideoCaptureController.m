@@ -17,6 +17,13 @@
 
 @end
 
+// Persists the user's camera choice across controller instances so that
+// when Daily recreates the track after an iOS interruption, the new
+// controller starts directly on the correct camera instead of defaulting
+// to front and requiring a switchCamera call (which corrupts WebRTC's
+// internal video adapter dimensions intermittently).
+static NSString *sPreferredFacingMode = nil;
+
 @implementation VideoCaptureController
 
 - (instancetype)initWithCapturer:(RTCCameraVideoCapturer *)capturer andConstraints:(NSDictionary *)constraints {
@@ -145,6 +152,14 @@
 
     id facingMode = constraints[@"facingMode"];
 
+    // If the user previously chose a camera via switchCamera, honour that
+    // choice when Daily recreates the track after an iOS interruption.
+    // This avoids a switchCamera call which corrupts WebRTC's video adapter.
+    if (sPreferredFacingMode && !deviceId) {
+        RCTLog(@"[VideoCaptureController] applyConstraints overriding facingMode=%@ with pref=%@", facingMode, sPreferredFacingMode);
+        facingMode = sPreferredFacingMode;
+    }
+
     if (!facingMode && !deviceId) {
         // Default to front camera.
         facingMode = @"user";
@@ -190,6 +205,8 @@
     self.deviceId = nil;
     self.device = nil;
 
+    sPreferredFacingMode = self.usingFrontCamera ? @"user" : @"environment";
+    RCTLog(@"[VideoCaptureController] switchCamera -> front=%d pref=%@", self.usingFrontCamera, sPreferredFacingMode);
     [self startCapture];
     return [self facingMode];
 }
